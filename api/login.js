@@ -21,7 +21,8 @@ export default async function handler(req, res) {
         action: 'login',
         key,
         password
-      })
+      }),
+       redirect: 'follow'   // <<< 加這行，強制自動跟隨 302
     });
 
     const text = await gasRes.text(); // ✅ 先用 text 讀，不直接 json()
