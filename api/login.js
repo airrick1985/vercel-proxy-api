@@ -3,8 +3,15 @@ import fetch from 'node-fetch';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');  // ✅ 加這個
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS'); // ✅ 加這個
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');  // ✅ 加這個
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // ✅ 預檢請求直接快速回應
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
     return res.status(405).json({ status: 'error', message: 'Only POST allowed' });
   }
 
@@ -22,17 +29,14 @@ export default async function handler(req, res) {
     });
 
     const text = await gasRes.text();
-    console.log('GAS 回傳:', text);
-
     let data;
     try {
       data = JSON.parse(text);
-    } catch (err) {
+    } catch (e) {
       console.error('回傳不是有效 JSON:', text);
       return res.status(500).json({ status: 'error', message: 'GAS回傳無效JSON' });
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json(data);
 
   } catch (e) {
