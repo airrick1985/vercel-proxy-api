@@ -1,4 +1,7 @@
 {
   "name": "vercel-proxy-api",
-  "type": "module"
+
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
 }
