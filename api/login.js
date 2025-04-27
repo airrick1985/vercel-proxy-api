@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   const { name, password } = req.body;
 
-  const gasUrl = 'https://script.google.com/macros/s/AKfycbz5lJN8Ep66o7JktZf6FYXzLOPv9KP5-ihLbSRqoBqh4RmhebjmQ3QTiCcTthhXJwg2/exec';
+  const gasUrl = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 
   try {
     const response = await fetch(gasUrl, {
