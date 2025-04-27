@@ -1,3 +1,4 @@
+// api/login.js
 import fetch from 'node-fetch';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
@@ -17,21 +18,20 @@ export default async function handler(req, res) {
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow', // ✅ 加上這個，正確跟隨 Google 的 redirect
       body: JSON.stringify({
         action: 'login',
         key,
         password
-      }),
-       redirect: 'follow'   // <<< 加這行，強制自動跟隨 302
+      })
     });
 
-    const text = await gasRes.text(); // ✅ 先用 text 讀，不直接 json()
-    console.log('GAS 回傳內容:', text);
+    const text = await gasRes.text(); // ✅ 先用 text 讀進來
+    console.log('GAS 回傳文字:', text);
 
-    // 嘗試解析 JSON
     let data;
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(text); // ✅ 再手動轉成 JSON
     } catch (e) {
       console.error('回傳不是有效 JSON:', text);
       return res.status(500).json({ status: 'error', message: 'GAS 回傳無效 JSON' });
