@@ -15,9 +15,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
   }
 
-  const { unitId, token } = req.body; // ✅ 這裡改成 unitId，跟 payload 一致
-  if (!unitId || !token) {
-    return res.status(400).json({ status: 'error', message: '缺少必要參數 (unitId 或 token)' });
+  const { unit, token } = req.body;
+  if (!unit || !token) {
+    return res.status(400).json({ status: 'error', message: '缺少必要參數 (unit 或 token)' });
   }
 
   if (token !== 'anxi111003') {
@@ -28,8 +28,7 @@ export default async function handler(req, res) {
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      redirect: 'follow',
-      body: JSON.stringify({ action: 'get_house_detail', unitId, token }) // ✅ 必須傳 action + unitId + token
+      body: JSON.stringify({ action: 'get_house_detail', unitId: unit, token })  // ✅ 這邊修正
     });
 
     const text = await gasRes.text();
