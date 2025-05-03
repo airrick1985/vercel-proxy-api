@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
 
   const { action, token, ...payload } = req.body;
+
   if (token !== 'anxi111003') {
     return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
   }
@@ -23,8 +24,7 @@ export default async function handler(req, res) {
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, token, ...payload })
-
+      body: JSON.stringify({ action, token, ...payload }) // ✅ 重點修正
     });
 
     const result = await gasRes.json();
