@@ -16,7 +16,9 @@ export default async function handler(req, res) {
     'get_unit_list',
     'get_building_list',
     'get_house_detail',
-    'get_all_house_details'
+    'get_all_house_details',
+    'update_house_detail'
+
   ];
 
   if (!action || !allowActions.includes(action)) {
