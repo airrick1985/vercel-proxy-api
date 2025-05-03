@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 
 export default async function handler(req, res) {
+  console.log('[metadata.js] 接收到請求:', req.body); // ✅ 加這行看有無 token
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
