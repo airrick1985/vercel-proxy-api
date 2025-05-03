@@ -1,0 +1,2 @@
+存檔到GIT倉庫
+git status && git add . && git commit -m "$(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M:%S')" && git push

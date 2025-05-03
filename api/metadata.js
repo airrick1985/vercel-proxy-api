@@ -3,7 +3,6 @@ import fetch from 'node-fetch';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 
 export default async function handler(req, res) {
-  console.log('[metadata.js] 接收到請求:', req.body); // ✅ 加這行看有無 token
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -11,7 +10,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
 
-  const { action, token, ...payload } = req.body;
+  const { action, ...payload } = req.body;
+
   const allowActions = [
     'get_unit_list',
     'get_building_list',
@@ -23,15 +23,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
   }
 
-  if (token !== 'anxi111003') {
-    return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
-  }
-
   try {
+    const body = JSON.stringify({ action, token: 'anxi111003', ...payload });
+
+    console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用途
+
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...payload })
+      body
     });
 
     const result = await gasRes.json();
