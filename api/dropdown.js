@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   // ✅ 新增支援 action: get_all_subcategories
   const supportedActions = [
     'get_dropdown_options',
-    'get_subcategories',
+   
     'get_repair_status_options',
     'get_all_subcategories'  // ✅ 加這行
   ];
