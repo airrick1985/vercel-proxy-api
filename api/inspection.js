@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, token, ...payload }) // ✅ 重點修正
+      body: JSON.stringify({ action, token, ...payload })
     });
 
     const result = await gasRes.json();
