@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
   }
 
-  if (!action || !['get_dropdown_options', 'get_subcategories', 'get_repair_status_options'].includes(action)) {
+  if (!action || !['get_dropdown_options', 'get_all_subcategories', 'get_repair_status_options'].includes(action)) {
     return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
   }
 
