@@ -28,7 +28,8 @@ export default async function handler(req, res) {
     'get_dropdown_options',
     'get_all_subcategories',
     'get_deleted_inspection_records',
-    'restore_inspection_record'
+    'restore_inspection_record',
+    'delete_photo_from_record' 
   ];
 
   if (!action || !allowActions.includes(action)) {
