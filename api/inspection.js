@@ -12,12 +12,27 @@ export default async function handler(req, res) {
 
   const { action, token, ...payload } = req.body;
 
+  // ✅ 驗證 token
   if (token !== 'anxi111003') {
     return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
   }
 
-  if (!action) {
-    return res.status(400).json({ status: 'error', message: '缺少 action 參數' });
+  // ✅ 限定允許的 action 名稱
+  const allowActions = [
+    'get_inspection_records',
+    'add_inspection_record',
+    'edit_inspection_record',
+    'update_inspection_record',
+    'delete_inspection_record',
+    'get_repair_status_options',
+    'get_dropdown_options',
+    'get_all_subcategories',
+    'get_deleted_inspection_records',
+    'restore_inspection_record'
+  ];
+
+  if (!action || !allowActions.includes(action)) {
+    return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
   }
 
   try {
