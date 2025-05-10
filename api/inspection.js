@@ -18,21 +18,22 @@ export default async function handler(req, res) {
   }
 
   // ✅ 限定允許的 action 名稱
-  const allowActions = [
-    'get_inspection_records',
-    'add_inspection_record',
-    'edit_inspection_record',
-    'update_inspection_record',
-    'delete_inspection_record',
-    'get_repair_status_options',
-    'get_dropdown_options',
-    'get_all_subcategories',
-    'get_deleted_inspection_records',
-    'restore_inspection_record',
-    'delete_photo_from_record',
-    'get_shared_inspection_records',
-    'generate_share_url'
-  ];
+const allowActions = [
+  'get_inspection_records',
+  'add_inspection_record',
+  'edit_inspection_record',
+  'update_inspection_record',
+  'delete_inspection_record',
+  'get_repair_status_options',
+  'get_dropdown_options',
+  'get_all_subcategories',
+  'get_deleted_inspection_records',
+  'restore_inspection_record',
+  'delete_photo_from_record',
+  'generate_share_url',
+  'get_shared_inspection_records' 
+];
+
 
   if (!action || !allowActions.includes(action)) {
     return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
