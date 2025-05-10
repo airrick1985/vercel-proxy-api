@@ -13,14 +13,11 @@ export default async function handler(req, res) {
 const { action, token, ...payload } = req.body;
 
 
-    // ✅ 驗證 token
-  if (token !== 'anxi111003') {
-    return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
-  }
-  // ✅ 驗證 token（僅跳過 get_shared_inspection_records）
-//if (action !== 'get_shared_inspection_records' && token !== 'anxi111003') {
- // return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
-//}
+
+   //✅ 驗證 token（僅跳過 get_shared_inspection_records）
+if (action !== 'get_shared_inspection_records' && token !== 'anxi111003') {
+  return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
+}
 
 
   // ✅ 限定允許的 action 名稱
