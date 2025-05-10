@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     'get_deleted_inspection_records',
     'restore_inspection_record',
     'delete_photo_from_record',
+    'get_shared_inspection_records',
     'generate_share_url'
   ];
 
