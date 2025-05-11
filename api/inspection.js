@@ -25,6 +25,7 @@ const allowActions = [
   'get_inspection_records',
   'add_inspection_record',
   'edit_inspection_record',
+  'edit_inspection_record_with_photos',
   'update_inspection_record',
   'delete_inspection_record',
   'get_repair_status_options',
