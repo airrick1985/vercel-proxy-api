@@ -35,7 +35,8 @@ const allowActions = [
   'restore_inspection_record',
   'delete_photo_from_record',
   'generate_share_url',
-  'get_shared_inspection_records' 
+  'get_shared_inspection_records',
+  'confirm_inspection'
 ];
 
 
