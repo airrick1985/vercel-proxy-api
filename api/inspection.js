@@ -57,6 +57,9 @@ const allowActions = [
     return res.status(200).json(result);
   } catch (err) {
     console.error('inspection.js 錯誤:', err);
+    console.log('[proxy] action:', action);
+    console.log('[proxy] token:', token);
+
     return res.status(500).json({ status: 'error', message: err.message });
   }
 }
