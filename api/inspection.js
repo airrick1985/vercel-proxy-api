@@ -37,7 +37,8 @@ const allowActions = [
   'generate_share_url',
   'get_shared_inspection_records',
    'upload_signature',
-  'confirm_inspection'
+  'confirm_inspection',
+   'generate_inspection_pdf'
 ];
 
 
