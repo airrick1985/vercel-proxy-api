@@ -10,37 +10,31 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
 
-const { action, token, ...payload } = req.body;
+  const { action, token, ...payload } = req.body;
 
+  if (action !== 'get_shared_inspection_records' && token !== 'anxi111003') {
+    return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
+  }
 
-
-   //✅ 驗證 token（僅跳過 get_shared_inspection_records）
-if (action !== 'get_shared_inspection_records' && token !== 'anxi111003') {
-  return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
-}
-
-
-  // ✅ 限定允許的 action 名稱
-const allowActions = [
-  'get_inspection_records',
-  'add_inspection_record',
-  'edit_inspection_record',
-  'edit_inspection_record_with_photos',
-  'update_inspection_record',
-  'delete_inspection_record',
-  'get_repair_status_options',
-  'get_dropdown_options',
-  'get_all_subcategories',
-  'get_deleted_inspection_records',
-  'restore_inspection_record',
-  'delete_photo_from_record',
-  'generate_share_url',
-  'get_shared_inspection_records',
-   'upload_signature',
-  'confirm_inspection',
-   'generate_inspection_pdf'
-];
-
+  const allowActions = [
+    'get_inspection_records',
+    'add_inspection_record',
+    'edit_inspection_record',
+    'edit_inspection_record_with_photos',
+    'update_inspection_record',
+    'delete_inspection_record',
+    'get_repair_status_options',
+    'get_dropdown_options',
+    'get_all_subcategories',
+    'get_deleted_inspection_records',
+    'restore_inspection_record',
+    'delete_photo_from_record',
+    'generate_share_url',
+    'get_shared_inspection_records',
+    'upload_signature',
+    'confirm_inspection',
+    'generate_inspection_pdf'
+  ];
 
   if (!action || !allowActions.includes(action)) {
     return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
@@ -49,20 +43,32 @@ const allowActions = [
   try {
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
-     headers: {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
-}
-,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ action, token, ...payload })
     });
 
-    const result = await gasRes.json();
-    return res.status(200).json(result);
+    const rawText = await gasRes.text();
+
+    try {
+      const result = JSON.parse(rawText);
+      return res.status(200).json(result);
+    } catch (parseErr) {
+      console.error('⚠️ JSON 解析錯誤');
+      console.error('👉 原始回應:', rawText);
+      return res.status(500).json({
+        status: 'error',
+        message: 'GAS 回傳非 JSON，請檢查 Apps Script',
+        raw: rawText
+      });
+    }
+
   } catch (err) {
-    console.error('inspection.js 錯誤:', err);
+    console.error('❌ proxy error:', err);
     console.log('[proxy] action:', action);
-    console.log('[proxy] token:', token);
+    console.log('[proxy] payload:', payload);
 
     return res.status(500).json({ status: 'error', message: err.message });
   }
