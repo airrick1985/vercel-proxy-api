@@ -36,6 +36,7 @@ const allowActions = [
   'delete_photo_from_record',
   'generate_share_url',
   'get_shared_inspection_records',
+   'upload_signature',
   'confirm_inspection'
 ];
 
