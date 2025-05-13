@@ -28,15 +28,26 @@ export default async function handler(req, res) {
     const body = JSON.stringify({ action, projectName: payload.projectName, ...payload });
 
     console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
+    console.log('[Proxy] 發送 payload:', JSON.stringify({ action, ...payload }));
+    
+const gasRes = await fetch(GAS_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action, ...payload })
+});
 
-    const gasRes = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body
-    });
+const text = await gasRes.text(); // 🔍 改成 text() 看看是什麼
+console.log('[Proxy] GAS 回傳:', text);
 
-    const result = await gasRes.json();
-    return res.status(200).json(result);
+let result;
+try {
+  result = JSON.parse(text);
+} catch (e) {
+  console.error('[Proxy] 回傳不是 JSON:', e.message);
+  return res.status(500).json({ status: 'error', message: 'GAS 回傳非 JSON' });
+}
+
+return res.status(200).json(result);
   } catch (err) {
     console.error('metadata.js 錯誤:', err);
     return res.status(500).json({ status: 'error', message: err.message });
