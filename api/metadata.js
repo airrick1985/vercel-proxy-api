@@ -25,7 +25,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = JSON.stringify({ action, projectName: payload.projectName, ...payload });
+    const body = JSON.stringify({ action, ...payload }); // 不要另外加 projectName
+
 
     console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
     console.log('[Proxy] 發送 payload:', JSON.stringify({ action, ...payload }));
@@ -33,8 +34,9 @@ export default async function handler(req, res) {
 const gasRes = await fetch(GAS_URL, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ action, ...payload })
+  body: JSON.stringify({ action, ...payload })  // ✅ 僅保留展開 payload
 });
+
 
 const text = await gasRes.text(); // 🔍 改成 text() 看看是什麼
 console.log('[Proxy] GAS 回傳:', text);
