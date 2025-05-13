@@ -18,7 +18,6 @@ export default async function handler(req, res) {
     'get_house_detail',
     'get_all_house_details',
     'update_house_detail'
-
   ];
 
   if (!action || !allowActions.includes(action)) {
@@ -26,9 +25,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = JSON.stringify({ action, token: 'anxi111003', ...payload });
+    const body = JSON.stringify({ action, ...payload }); // ✅ 不再強制加 token
 
-    console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用途
+    console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
 
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
