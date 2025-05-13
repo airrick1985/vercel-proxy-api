@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
 
-  const { action, ...payload } = req.body;
+  const { action, projectName, ...rest } = req.body;
 
   const allowActions = [
     'get_unit_list',
@@ -25,34 +25,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = JSON.stringify({ action, ...payload }); // 不要另外加 projectName
+    const bodyToSend = JSON.stringify({
+      action,
+      projectName,
+      ...rest
+    });
 
+    console.log('[metadata.js] ✅ 發送到 GAS 的內容:', bodyToSend);
 
-    console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
-    console.log('[Proxy] 發送 payload:', payload);
+    const gasRes = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyToSend
+    });
 
-    
-const gasRes = await fetch(GAS_URL, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ action, ...payload })  // ✅ 僅保留展開 payload
-});
+    const text = await gasRes.text();
+    console.log('[metadata.js] ✅ GAS 回傳:', text);
 
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error('[metadata.js] ❌ 回傳不是 JSON:', e.message);
+      return res.status(500).json({ status: 'error', message: 'GAS 回傳非 JSON' });
+    }
 
-const text = await gasRes.text(); // 🔍 改成 text() 看看是什麼
-console.log('[Proxy] GAS 回傳:', text);
-
-let result;
-try {
-  result = JSON.parse(text);
-} catch (e) {
-  console.error('[Proxy] 回傳不是 JSON:', e.message);
-  return res.status(500).json({ status: 'error', message: 'GAS 回傳非 JSON' });
-}
-
-return res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (err) {
-    console.error('metadata.js 錯誤:', err);
+    console.error('[metadata.js] ❌ 錯誤:', err);
     return res.status(500).json({ status: 'error', message: err.message });
   }
 }
