@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = JSON.stringify({ action, ...payload }); // ✅ 不再強制加 token
+    const body = JSON.stringify({ action, projectName: payload.projectName, ...payload });
 
     console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
 
