@@ -29,7 +29,8 @@ export default async function handler(req, res) {
 
 
     console.log('[metadata.js] 發送到 GAS 的內容:', body); // ✅ 除錯用
-    console.log('[Proxy] 發送 payload:', JSON.stringify({ action, ...payload }));
+    console.log('[Proxy] 發送 payload:', payload);
+
     
 const gasRes = await fetch(GAS_URL, {
   method: 'POST',
