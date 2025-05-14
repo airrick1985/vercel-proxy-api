@@ -1,58 +1,120 @@
+// vercel-proxy-api/api/metadata.js
 import fetch from 'node-fetch';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
+const PRODUCTION_ORIGIN = 'https://airrick1985.github.io';
+const TRUSTED_DEV_ORIGINS = [
+  'https://glorious-barnacle-7rpgq4xjx4jfx79p-5173.app.github.dev',
+  // 'http://localhost:5173'
+];
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const requestOrigin = req.headers.origin;
+  let originToAllow = null;
+
+  console.log(`[metadata.js CORS Check] Request Origin: ${requestOrigin}, NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[metadata.js CORS Check] TRUSTED_DEV_ORIGINS: ${JSON.stringify(TRUSTED_DEV_ORIGINS)}`);
+
+  if (requestOrigin && TRUSTED_DEV_ORIGINS.includes(requestOrigin)) {
+    originToAllow = requestOrigin;
+    console.log(`[metadata.js CORS Check] Allowing TRUSTED_DEV_ORIGIN: ${originToAllow}`);
+  } else if (requestOrigin === PRODUCTION_ORIGIN) {
+    originToAllow = PRODUCTION_ORIGIN;
+    console.log(`[metadata.js CORS Check] Allowing PRODUCTION_ORIGIN: ${originToAllow}`);
+  } else if (process.env.NODE_ENV === 'development') {
+    if (requestOrigin) {
+      originToAllow = requestOrigin;
+      console.warn(`[metadata.js CORS Check] NODE_ENV=development: Allowing unlisted origin ${requestOrigin}`);
+    } else {
+      originToAllow = '*';
+      console.warn(`[metadata.js CORS Check] NODE_ENV=development: No origin header, allowing '*'`);
+    }
+  }
+
+  if (originToAllow) {
+    res.setHeader('Access-Control-Allow-Origin', originToAllow);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
+  if (req.method === 'OPTIONS') {
+    console.log(`[metadata.js] Handling OPTIONS request. Allowed origin determined: ${originToAllow || 'NONE (will be blocked if not matched and not dev fallback)'}`);
+    return res.status(204).end();
+  }
 
-  const { action, projectName, ...rest } = req.body;
+  if (req.method !== 'POST') {
+    console.log(`[metadata.js] Method Not Allowed: ${req.method}`);
+    return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
+  }
+
+  if (process.env.NODE_ENV !== 'development' && !originToAllow) {
+      console.log(`[metadata.js] POST request blocked. Origin: ${requestOrigin} not allowed.`);
+      return res.status(403).json({ status: 'error', message: 'CORS policy: Origin not allowed for POST request.' });
+  }
+
+  const { action, projectName, token, ...rest } = req.body;
+  console.log(`[metadata.js] Received POST - action: ${action}, projectName: ${projectName}, token: ${token ? 'present' : 'missing'}`);
+
+  // metadata.js 的原始版本沒有 token 驗證，如果需要請取消註釋
+  // if (token !== 'anxi111003') {
+  //   console.log('[metadata.js] Token 驗證失敗');
+  //   return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
+  // }
 
   const allowActions = [
-    'get_unit_list',
-    'get_building_list',
-    'get_house_detail',
-    'get_all_house_details',
-    'update_house_detail'
+    'get_unit_list', 'get_building_list', 'get_house_detail',
+    'get_all_house_details', 'update_house_detail'
   ];
 
   if (!action || !allowActions.includes(action)) {
-    return res.status(400).json({ status: 'error', message: '不支援的 action 參數' });
+    console.log(`[metadata.js] 不支援的 action 參數: ${action}`);
+    return res.status(400).json({ status: 'error', message: `不支援的 action 參數: ${action}` });
   }
 
+  if (!projectName && allowActions.includes(action)) { // 所有 metadata actions 都需要 projectName
+    console.log(`[metadata.js] Action ${action} 需要 projectName，但未提供。`);
+    return res.status(400).json({ status: 'error', message: `Action ${action} 需要 projectName 參數。` });
+  }
+
+  const bodyToGas = { action, projectName, token, ...rest };
+  // 如果某些 metadata action 不需要 token，可以在這裡從 bodyToGas 中刪除
+  // if (action === 'get_unit_list') delete bodyToGas.token;
+
+
   try {
-    const bodyToSend = JSON.stringify({
-      action,
-      projectName,
-      ...rest
-    });
-
-    console.log('[metadata.js] ✅ 發送到 GAS 的內容:', bodyToSend);
-
+    console.log('[metadata.js] Forwarding to GAS with body:', JSON.stringify(bodyToGas));
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: bodyToSend
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(bodyToGas)
     });
-
-    const text = await gasRes.text();
-    console.log('[metadata.js] ✅ GAS 回傳:', text);
-
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch (e) {
-      console.error('[metadata.js] ❌ 回傳不是 JSON:', e.message);
-      return res.status(500).json({ status: 'error', message: 'GAS 回傳非 JSON' });
+    const rawText = await gasRes.text();
+    if (!gasRes.ok) {
+      console.error(`[metadata.js] GAS request failed with status ${gasRes.status}. Action: ${action}. Response:`, rawText.substring(0, 500));
+      return res.status(gasRes.status).json({
+        status: 'error',
+        message: `GAS 請求失敗 (action: ${action})，狀態碼: ${gasRes.status}`,
+        raw: rawText.substring(0, 500)
+      });
     }
-
-    return res.status(200).json(result);
+    console.log(`[metadata.js] GAS response received (Action: ${action}). Length: ${rawText.length}. Preview:`, rawText.substring(0, 200) + (rawText.length > 200 ? '...' : ''));
+    try {
+      const result = JSON.parse(rawText);
+      console.log(`[metadata.js] Successfully parsed JSON from GAS (Action: ${action})`);
+      return res.status(200).json(result);
+    } catch (parseErr) {
+      console.error(`[metadata.js] JSON parsing error from GAS (Action: ${action}). Error:`, parseErr.message);
+      console.error('Original GAS response text (first 1000 chars):', rawText.substring(0, 1000));
+      return res.status(500).json({
+        status: 'error',
+        message: 'GAS 回傳的內容無法解析為 JSON，請檢查 Apps Script 的輸出。',
+        action: action,
+        rawResponsePreview: rawText.substring(0, 500)
+      });
+    }
   } catch (err) {
-    console.error('[metadata.js] ❌ 錯誤:', err);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error(`[metadata.js] Proxy internal error (Action: ${action}). Error:`, err.message, err.stack);
+    return res.status(500).json({ status: 'error', message: `代理伺服器內部錯誤: ${err.message}` });
   }
 }
