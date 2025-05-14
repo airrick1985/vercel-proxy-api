@@ -9,6 +9,10 @@ const allowedOriginsForDev = [
 ];
 
 export default async function handler(req, res) {
+  console.log(`[user.js Entry] NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[user.js Entry] Request Origin Header: ${req.headers.origin}`);
+  console.log(`[user.js Entry] Request Method: ${req.method}`);
+
   const requestOrigin = req.headers.origin;
   let originToAllow = null; // 初始化為 null
 
