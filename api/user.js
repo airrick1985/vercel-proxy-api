@@ -3,67 +3,59 @@ import fetch from 'node-fetch';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 const PRODUCTION_ORIGIN = 'https://airrick1985.github.io';
-const allowedOriginsForDev = [
+const TRUSTED_DEV_ORIGINS = [
   'https://glorious-barnacle-7rpgq4xjx4jfx79p-5173.app.github.dev',
-  // 'http://localhost:5173'
+  // 'http://localhost:5173' // 如果有本地開發，取消註釋並修改端口
+  // 添加其他你常用的開發源
 ];
 
 export default async function handler(req, res) {
-  console.log(`[user.js Entry] NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`[user.js Entry] Request Origin Header: ${req.headers.origin}`);
-  console.log(`[user.js Entry] Request Method: ${req.method}`);
-
   const requestOrigin = req.headers.origin;
-  let originToAllow = null; // 初始化為 null
+  let originToAllow = null;
 
-  if (requestOrigin === PRODUCTION_ORIGIN) {
+  console.log(`[user.js CORS Check] Request Origin: ${requestOrigin}, NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[user.js CORS Check] TRUSTED_DEV_ORIGINS: ${JSON.stringify(TRUSTED_DEV_ORIGINS)}`);
+
+  if (requestOrigin && TRUSTED_DEV_ORIGINS.includes(requestOrigin)) {
+    originToAllow = requestOrigin;
+    console.log(`[user.js CORS Check] Allowing TRUSTED_DEV_ORIGIN: ${originToAllow}`);
+  } else if (requestOrigin === PRODUCTION_ORIGIN) {
     originToAllow = PRODUCTION_ORIGIN;
+    console.log(`[user.js CORS Check] Allowing PRODUCTION_ORIGIN: ${originToAllow}`);
   } else if (process.env.NODE_ENV === 'development') {
-    if (requestOrigin && allowedOriginsForDev.includes(requestOrigin)) {
+    if (requestOrigin) {
       originToAllow = requestOrigin;
-    } else if (requestOrigin) { // 開發模式下，如果不在白名單，也允許當前請求的源
-      originToAllow = requestOrigin;
-      console.warn(`[CORS - user.js] Development mode: Allowing unlisted origin ${requestOrigin}`);
+      console.warn(`[user.js CORS Check] NODE_ENV=development: Allowing unlisted origin ${requestOrigin}`);
     } else {
-      // 開發模式下，如果沒有 origin (例如服務器間請求)，可以考慮允許 '*'
-      // 但對於瀏覽器發起的預檢請求，origin 應該存在
       originToAllow = '*';
-      console.warn(`[CORS - user.js] Development mode: No origin header, allowing '*'`);
+      console.warn(`[user.js CORS Check] NODE_ENV=development: No origin header, allowing '*'`);
     }
   }
-  // 如果是生產環境，且 requestOrigin 不是 PRODUCTION_ORIGIN，則 originToAllow 保持 null
-  // 這將導致後續的 setHeader 不會設置 Access-Control-Allow-Origin，從而瀏覽器會阻止請求（這是期望的）
 
-  // 始終先設置這些頭部，即使 originToAllow 為 null (瀏覽器會忽略無效的頭)
-  // 但更好的做法是只有在 originToAllow 有效時才設置
   if (originToAllow) {
-      res.setHeader('Access-Control-Allow-Origin', originToAllow);
+    res.setHeader('Access-Control-Allow-Origin', originToAllow);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // 確保包含所有前端可能發送的頭
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    console.log(`[user.js] Handling OPTIONS request from origin: ${requestOrigin}. Allowed origin: ${originToAllow || 'Not Set (Blocked by default in prod if not matched)'}`);
-    // OPTIONS 請求只需要正確的 CORS 頭即可，不需要進一步處理
-    return res.status(204).end(); // 通常 OPTIONS 成功響應是 204 No Content
+    console.log(`[user.js] Handling OPTIONS request. Allowed origin determined: ${originToAllow || 'NONE (will be blocked if not matched and not dev fallback)'}`);
+    return res.status(204).end();
   }
 
-  // --- POST 請求處理邏輯 ---
   if (req.method !== 'POST') {
     console.log(`[user.js] Method Not Allowed: ${req.method}`);
     return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
   }
 
-  // 如果 originToAllow 為 null (表示生產環境下源不匹配)，則阻止 POST 請求
-  if (!originToAllow && process.env.NODE_ENV !== 'development' && requestOrigin !== PRODUCTION_ORIGIN) {
-      console.log(`[user.js] CORS check failed for POST request from origin: ${requestOrigin}`);
-      return res.status(403).json({ status: 'error', message: 'CORS policy: Origin not allowed.' });
+  if (process.env.NODE_ENV !== 'development' && !originToAllow) {
+      console.log(`[user.js] POST request blocked. Origin: ${requestOrigin} not allowed.`);
+      return res.status(403).json({ status: 'error', message: 'CORS policy: Origin not allowed for POST request.' });
   }
 
-
   const { action, projectName, token, ...payload } = req.body;
-  console.log(`[user.js] Received POST - action: ${action}, projectName: ${projectName}, token: ${token ? 'present' : 'missing'}`);
+  console.log(`[user.js] Processing POST - action: ${action}, projectName: ${projectName}, token: ${token ? 'present' : 'missing'}`);
 
   const allowActions = ['login', 'forgot_password', 'update_profile', 'get_project_list'];
   if (!action || !allowActions.includes(action)) {
@@ -95,9 +87,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(bodyToGas)
     });
-
     const rawText = await gasRes.text();
-
     if (!gasRes.ok) {
       console.error(`[user.js] GAS request failed with status ${gasRes.status}. Action: ${action}. Response:`, rawText.substring(0, 500));
       return res.status(gasRes.status).json({
@@ -106,9 +96,7 @@ export default async function handler(req, res) {
         raw: rawText.substring(0, 500)
       });
     }
-
     console.log(`[user.js] GAS response received (Action: ${action}). Length: ${rawText.length}. Preview:`, rawText.substring(0, 200) + (rawText.length > 200 ? '...' : ''));
-
     try {
       const result = JSON.parse(rawText);
       console.log(`[user.js] Successfully parsed JSON from GAS (Action: ${action})`);
