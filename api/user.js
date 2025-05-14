@@ -5,52 +5,61 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0Ver
 const PRODUCTION_ORIGIN = 'https://airrick1985.github.io';
 const allowedOriginsForDev = [
   'https://glorious-barnacle-7rpgq4xjx4jfx79p-5173.app.github.dev',
-  // 'http://localhost:5173' // 添加其他開發源
+  // 'http://localhost:5173'
 ];
 
 export default async function handler(req, res) {
   const requestOrigin = req.headers.origin;
-  let effectiveAllowedOrigin;
+  let originToAllow = null; // 初始化為 null
 
   if (requestOrigin === PRODUCTION_ORIGIN) {
-    effectiveAllowedOrigin = PRODUCTION_ORIGIN;
+    originToAllow = PRODUCTION_ORIGIN;
   } else if (process.env.NODE_ENV === 'development') {
     if (requestOrigin && allowedOriginsForDev.includes(requestOrigin)) {
-      effectiveAllowedOrigin = requestOrigin;
+      originToAllow = requestOrigin;
+    } else if (requestOrigin) { // 開發模式下，如果不在白名單，也允許當前請求的源
+      originToAllow = requestOrigin;
+      console.warn(`[CORS - user.js] Development mode: Allowing unlisted origin ${requestOrigin}`);
     } else {
-      effectiveAllowedOrigin = requestOrigin || '*';
-      if (requestOrigin && !allowedOriginsForDev.includes(requestOrigin)) {
-          console.warn(`[CORS - user.js] Development mode: Allowing unlisted origin ${requestOrigin}`);
-      }
+      // 開發模式下，如果沒有 origin (例如服務器間請求)，可以考慮允許 '*'
+      // 但對於瀏覽器發起的預檢請求，origin 應該存在
+      originToAllow = '*';
+      console.warn(`[CORS - user.js] Development mode: No origin header, allowing '*'`);
     }
   }
+  // 如果是生產環境，且 requestOrigin 不是 PRODUCTION_ORIGIN，則 originToAllow 保持 null
+  // 這將導致後續的 setHeader 不會設置 Access-Control-Allow-Origin，從而瀏覽器會阻止請求（這是期望的）
 
-  if (effectiveAllowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', effectiveAllowedOrigin);
+  // 始終先設置這些頭部，即使 originToAllow 為 null (瀏覽器會忽略無效的頭)
+  // 但更好的做法是只有在 originToAllow 有效時才設置
+  if (originToAllow) {
+      res.setHeader('Access-Control-Allow-Origin', originToAllow);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // 確保包含所有前端可能發送的頭
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    console.log(`[user.js] Handling OPTIONS request from origin: ${requestOrigin}`);
-    return res.status(200).end();
+    console.log(`[user.js] Handling OPTIONS request from origin: ${requestOrigin}. Allowed origin: ${originToAllow || 'Not Set (Blocked by default in prod if not matched)'}`);
+    // OPTIONS 請求只需要正確的 CORS 頭即可，不需要進一步處理
+    return res.status(204).end(); // 通常 OPTIONS 成功響應是 204 No Content
   }
 
+  // --- POST 請求處理邏輯 ---
   if (req.method !== 'POST') {
     console.log(`[user.js] Method Not Allowed: ${req.method}`);
     return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
   }
 
-  // 解構時包含 projectName 和 token (即使 token 目前未使用)
+  // 如果 originToAllow 為 null (表示生產環境下源不匹配)，則阻止 POST 請求
+  if (!originToAllow && process.env.NODE_ENV !== 'development' && requestOrigin !== PRODUCTION_ORIGIN) {
+      console.log(`[user.js] CORS check failed for POST request from origin: ${requestOrigin}`);
+      return res.status(403).json({ status: 'error', message: 'CORS policy: Origin not allowed.' });
+  }
+
+
   const { action, projectName, token, ...payload } = req.body;
   console.log(`[user.js] Received POST - action: ${action}, projectName: ${projectName}, token: ${token ? 'present' : 'missing'}`);
-
-  // 如果 user 相關操作也需要 token 驗證，在此處添加
-  // if (token !== 'anxi111003') { // 假設 token 邏輯，如果有的話
-  //   console.log('[user.js] Token 驗證失敗');
-  //   return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
-  // }
 
   const allowActions = ['login', 'forgot_password', 'update_profile', 'get_project_list'];
   if (!action || !allowActions.includes(action)) {
@@ -58,7 +67,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ status: 'error', message: `不支援的 action: ${action}` });
   }
 
-  // 特別處理：login action 需要 projectName
   if (action === 'login' && !projectName) {
     console.log('[user.js] Login action 需要 projectName，但未提供。');
     return res.status(400).json({ status: 'error', message: '登入請求缺少建案名稱 (projectName) 參數。' });
@@ -66,15 +74,12 @@ export default async function handler(req, res) {
 
   const bodyToGas = {
     action,
-    projectName: action === 'login' ? projectName : undefined, // 只有 login action 確定需要轉發 projectName
-    // token, // 如果 GAS 端需要，則轉發
-    ...payload // payload 中可能包含 key, password 等
+    projectName: action === 'login' ? projectName : undefined,
+    ...payload
   };
-  // 清理 undefined 的 projectName (如果不是 login)
   if (bodyToGas.projectName === undefined) {
     delete bodyToGas.projectName;
   }
-
 
   try {
     console.log('[user.js] Forwarding to GAS with body:', JSON.stringify(bodyToGas));
@@ -114,7 +119,6 @@ export default async function handler(req, res) {
         rawResponsePreview: rawText.substring(0, 500)
       });
     }
-
   } catch (err) {
     console.error(`[user.js] Proxy internal error (Action: ${action}). Error:`, err.message, err.stack);
     return res.status(500).json({ status: 'error', message: `代理伺服器內部錯誤: ${err.message}` });
