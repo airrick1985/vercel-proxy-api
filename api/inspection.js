@@ -33,7 +33,8 @@ export default async function handler(req, res) {
     'get_shared_inspection_records',
     'upload_signature',
     'confirm_inspection',
-    'generate_inspection_pdf'
+    'generate_inspection_pdf',
+    'get_all_project_inspection_records'
   ];
 
   if (!action || !allowActions.includes(action)) {
