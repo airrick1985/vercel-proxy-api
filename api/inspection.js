@@ -3,43 +3,54 @@ import fetch from 'node-fetch';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOrkROg0DlK_eE17SZ0VerLmWAS_HA0AoOusqjcIVxtd4oKPqFfFjhna3x38AO7Gyn/exec';
 const PRODUCTION_ORIGIN = 'https://airrick1985.github.io';
-const allowedOriginsForDev = [
+const TRUSTED_DEV_ORIGINS = [
   'https://glorious-barnacle-7rpgq4xjx4jfx79p-5173.app.github.dev',
-  // 'http://localhost:5173' // 添加其他開發源
+  // 'http://localhost:5173'
 ];
 
 export default async function handler(req, res) {
   const requestOrigin = req.headers.origin;
-  let effectiveAllowedOrigin;
+  let originToAllow = null;
 
-  if (requestOrigin === PRODUCTION_ORIGIN) {
-    effectiveAllowedOrigin = PRODUCTION_ORIGIN;
+  console.log(`[inspection.js CORS Check] Request Origin: ${requestOrigin}, NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`[inspection.js CORS Check] TRUSTED_DEV_ORIGINS: ${JSON.stringify(TRUSTED_DEV_ORIGINS)}`);
+
+  if (requestOrigin && TRUSTED_DEV_ORIGINS.includes(requestOrigin)) {
+    originToAllow = requestOrigin;
+    console.log(`[inspection.js CORS Check] Allowing TRUSTED_DEV_ORIGIN: ${originToAllow}`);
+  } else if (requestOrigin === PRODUCTION_ORIGIN) {
+    originToAllow = PRODUCTION_ORIGIN;
+    console.log(`[inspection.js CORS Check] Allowing PRODUCTION_ORIGIN: ${originToAllow}`);
   } else if (process.env.NODE_ENV === 'development') {
-    if (requestOrigin && allowedOriginsForDev.includes(requestOrigin)) {
-      effectiveAllowedOrigin = requestOrigin;
+    if (requestOrigin) {
+      originToAllow = requestOrigin;
+      console.warn(`[inspection.js CORS Check] NODE_ENV=development: Allowing unlisted origin ${requestOrigin}`);
     } else {
-      effectiveAllowedOrigin = requestOrigin || '*';
-      if (requestOrigin && !allowedOriginsForDev.includes(requestOrigin)) {
-          console.warn(`[CORS - inspection.js] Development mode: Allowing unlisted origin ${requestOrigin}`);
-      }
+      originToAllow = '*';
+      console.warn(`[inspection.js CORS Check] NODE_ENV=development: No origin header, allowing '*'`);
     }
   }
 
-  if (effectiveAllowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', effectiveAllowedOrigin);
+  if (originToAllow) {
+    res.setHeader('Access-Control-Allow-Origin', originToAllow);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    console.log(`[inspection.js] Handling OPTIONS request from origin: ${requestOrigin}`);
-    return res.status(200).end();
+    console.log(`[inspection.js] Handling OPTIONS request. Allowed origin determined: ${originToAllow || 'NONE (will be blocked if not matched and not dev fallback)'}`);
+    return res.status(204).end();
   }
 
   if (req.method !== 'POST') {
     console.log(`[inspection.js] Method Not Allowed: ${req.method}`);
     return res.status(405).json({ status: 'error', message: '只允許 POST 方法' });
+  }
+
+  if (process.env.NODE_ENV !== 'development' && !originToAllow) {
+      console.log(`[inspection.js] POST request blocked. Origin: ${requestOrigin} not allowed.`);
+      return res.status(403).json({ status: 'error', message: 'CORS policy: Origin not allowed for POST request.' });
   }
 
   const { action, token, projectName, ...payload } = req.body;
@@ -51,24 +62,11 @@ export default async function handler(req, res) {
   }
 
   const allowActions = [
-    'get_inspection_records',
-    'add_inspection_record',
-    'edit_inspection_record',
-    'edit_inspection_record_with_photos',
-    'update_inspection_record',
-    'delete_inspection_record',
-    // 'get_repair_status_options', // 這些通常在 dropdown.js 中處理
-    // 'get_dropdown_options',
-    // 'get_all_subcategories',
-    'get_deleted_inspection_records',
-    'restore_inspection_record',
-    'delete_photo_from_record',
-    'generate_share_url',
-    'get_shared_inspection_records',
-    // 'upload_signature', // upload_signature 通常在 upload.js 中處理
-    'confirm_inspection',
-    'generate_inspection_pdf',
-    'get_all_project_inspection_records'
+    'get_inspection_records', 'add_inspection_record', 'edit_inspection_record',
+    'edit_inspection_record_with_photos', 'update_inspection_record', 'delete_inspection_record',
+    'get_deleted_inspection_records', 'restore_inspection_record', 'delete_photo_from_record',
+    'generate_share_url', 'get_shared_inspection_records', 'confirm_inspection',
+    'generate_inspection_pdf', 'get_all_project_inspection_records'
   ];
 
   if (!action || !allowActions.includes(action)) {
@@ -76,21 +74,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ status: 'error', message: `不支援的 action 參數: ${action}` });
   }
 
-  // 檢查對於需要 projectName 的 action，projectName 是否存在
-  const actionsRequiringProjectName = [ // 這些 action 在 GAS 端需要 ssId，因此代理層必須轉發 projectName
-    'get_inspection_records',
-    'add_inspection_record',
-    'edit_inspection_record',
-    'edit_inspection_record_with_photos',
-    'update_inspection_record',
-    'delete_inspection_record',
-    'get_deleted_inspection_records',
-    'restore_inspection_record',
-    'delete_photo_from_record',
-    'generate_share_url',
-    // 'get_shared_inspection_records', // 這個 action 可能有自己的 token 和 unitId 邏輯，不一定依賴 projectName 獲取 ssId
-    'confirm_inspection',
-    'generate_inspection_pdf',
+  const actionsRequiringProjectName = [
+    'get_inspection_records', 'add_inspection_record', 'edit_inspection_record',
+    'edit_inspection_record_with_photos', 'update_inspection_record', 'delete_inspection_record',
+    'get_deleted_inspection_records', 'restore_inspection_record', 'delete_photo_from_record',
+    'generate_share_url', 'confirm_inspection', 'generate_inspection_pdf',
     'get_all_project_inspection_records'
   ];
 
@@ -99,27 +87,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ status: 'error', message: `Action ${action} 需要 projectName 參數。` });
   }
 
+  const bodyToGas = { action, token, projectName, ...payload };
+  if (!actionsRequiringProjectName.includes(action) && action !== 'get_shared_inspection_records') { // get_shared_inspection_records 可能不需要 projectName
+    delete bodyToGas.projectName;
+  }
 
-  const bodyToGas = {
-    action,
-    token, // 即使代理層驗證了，GAS 端可能也需要（例如 get_shared_inspection_records）
-    projectName, // 確保 projectName 被轉發
-    ...payload
-  };
 
   try {
     console.log('[inspection.js] Forwarding to GAS with body:', JSON.stringify(bodyToGas));
     const gasRes = await fetch(GAS_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(bodyToGas)
     });
-
     const rawText = await gasRes.text();
-
     if (!gasRes.ok) {
       console.error(`[inspection.js] GAS request failed with status ${gasRes.status}. Action: ${action}. Response:`, rawText.substring(0, 500));
       return res.status(gasRes.status).json({
@@ -128,9 +109,7 @@ export default async function handler(req, res) {
         raw: rawText.substring(0, 500)
       });
     }
-
     console.log(`[inspection.js] GAS response received (Action: ${action}). Length: ${rawText.length}. Preview:`, rawText.substring(0, 200) + (rawText.length > 200 ? '...' : ''));
-
     try {
       const result = JSON.parse(rawText);
       console.log(`[inspection.js] Successfully parsed JSON from GAS (Action: ${action})`);
@@ -145,7 +124,6 @@ export default async function handler(req, res) {
         rawResponsePreview: rawText.substring(0, 500)
       });
     }
-
   } catch (err) {
     console.error(`[inspection.js] Proxy internal error (Action: ${action}). Error:`, err.message, err.stack);
     return res.status(500).json({ status: 'error', message: `代理伺服器內部錯誤: ${err.message}` });
