@@ -12,7 +12,13 @@ export default async function handler(req, res) {
 
   const { action, ...payload } = req.body;
 
-const allowActions = ['login', 'forgot_password', 'update_profile', 'get_project_list','get_projects_by_system_permission'];
+const allowActions = [
+    'login',
+    'forgot_password',
+    'update_profile',
+    'get_project_list',
+    'get_projects_by_system_permission' 
+  ];
   if (!action || !allowActions.includes(action)) {
     return res.status(400).json({ status: 'error', message: '不支援的 action' });
   }
