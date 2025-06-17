@@ -17,7 +17,8 @@ const allowActions = [
     'forgot_password',
     'update_profile',
     'get_project_list',
-    'get_projects_by_system_permission' 
+    'get_projects_by_system_permission',
+    'get_quote_personnel_list'
   ];
   if (!action || !allowActions.includes(action)) {
     return res.status(400).json({ status: 'error', message: '不支援的 action' });
