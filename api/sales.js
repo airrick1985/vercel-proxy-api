@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const { action, ...payload } = req.body;
 
     // Action 白名單，增加安全性
-    const allowActions = ['get_sales_control_data','get_parking_list','generate_quote_pdf','update_sales_data','get_sales_options'];
+    const allowActions = ['get_sales_control_data','get_parking_list','generate_quote_pdf','update_sales_data','get_sales_options','generate_payment_schedule','send_payment_schedule_email'];
     if (!action || !allowActions.includes(action)) {
       return res.status(400).json({ status: 'error', message: `Action "${action}" is not supported by this endpoint.` });
     }
