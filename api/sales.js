@@ -37,7 +37,9 @@ export default async function handler(req, res) {
                           'get_sales_options',
                           'generate_payment_schedule',
                           'send_payment_schedule_email',
-                          'get_svg_from_folder'];
+                          'get_svg_from_folder',
+                          'update_parking_slide'
+                         ];
     if (!action || !allowActions.includes(action)) {
       return res.status(400).json({ status: 'error', message: `Action "${action}" is not supported by this endpoint.` });
     }
