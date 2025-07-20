@@ -29,7 +29,9 @@ export default async function handler(req, res) {
       'add_subscription',
       'update_subscription',
       'delete_subscription',
-      'get_master_data_for_subscription_form'
+      'get_master_data_for_subscription_form',
+      'get_my_subscription_status' 
+         
     ];
 
     if (!action || !allowActions.includes(action)) {
