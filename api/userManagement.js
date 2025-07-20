@@ -27,7 +27,8 @@ export default async function handler(req, res) {
     const allowActions = [
       'get_admin_scope',
       'fetch_user_details_for_admin',
-      'update_user_details_for_admin'
+      'update_user_details_for_admin',
+      'get_manageable_users_for_admin'
     ];
 
     if (!action || !allowActions.includes(action)) {
