@@ -44,7 +44,8 @@ export default async function handler(req, res) {
                           'update_parking_lot_details',
                           'download_sheets_as_excel',
                           'upload_excel_to_overwrite',
-                           'upload_excel_for_overwrite'
+                           'upload_excel_for_overwrite',
+                          'backup_spreadsheet'
                          ];
     if (!action || !allowActions.includes(action)) {
       return res.status(400).json({ status: 'error', message: `Action "${action}" is not supported by this endpoint.` });
