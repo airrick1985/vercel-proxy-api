@@ -45,7 +45,9 @@ export default async function handler(req, res) {
                           'download_sheets_as_excel',
                           'upload_excel_to_overwrite',
                            'upload_excel_for_overwrite',
-                          'backup_spreadsheet'
+                          'backup_spreadsheet',
+                          'get_activity_message_slide_id' 
+
                          ];
     if (!action || !allowActions.includes(action)) {
       return res.status(400).json({ status: 'error', message: `Action "${action}" is not supported by this endpoint.` });
