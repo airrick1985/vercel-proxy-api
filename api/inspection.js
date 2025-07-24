@@ -13,11 +13,14 @@ export default async function handler(req, res) {
   const { action, token, ...payload } = req.body;
 
   const publicActions = [
-    'get_shared_inspection_records',
+   'get_shared_inspection_records',
     'get_booking_initial_data',
     'get_units_by_building',
-    'check_existing_booking'
-    // 未來其他公開功能也加在這裡
+    'check_existing_booking',
+    'get_booking_slots', 
+    'save_booking',      
+    'cancel_booking'     
+
   ];
 
   // 如果 action 不在公開列表中，才檢查 token
