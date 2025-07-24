@@ -14,6 +14,7 @@ export default async function handler(req, res) {
 
   // ✅ 核心修正 1：建立一個包含所有公開 action 的列表
   const publicActions = [
+    'get_all_units_for_booking',
     'get_shared_inspection_records',
     'get_booking_initial_data',
     'get_units_by_building',
