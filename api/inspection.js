@@ -12,7 +12,16 @@ export default async function handler(req, res) {
 
   const { action, token, ...payload } = req.body;
 
-  if (action !== 'get_shared_inspection_records' && token !== 'anxi111003') {
+  const publicActions = [
+    'get_shared_inspection_records',
+    'get_booking_initial_data',
+    'get_units_by_building',
+    'check_existing_booking'
+    // 未來其他公開功能也加在這裡
+  ];
+
+  // 如果 action 不在公開列表中，才檢查 token
+  if (!publicActions.includes(action) && token !== 'anxi111003') {
     return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
   }
 
@@ -33,7 +42,6 @@ export default async function handler(req, res) {
     'restore_inspection_record',
     'delete_photo_from_record',
     'generate_share_url',
-    'get_shared_inspection_records',
     'upload_signature',
     'confirm_inspection',
     'generate_inspection_pdf',
