@@ -17,6 +17,9 @@ export default async function handler(req, res) {
   }
 
   const allowActions = [
+    'get_booking_initial_data',
+    'get_units_by_building',
+    'check_existing_booking',
     'get_inspection_records',
     'add_inspection_record',
     'edit_inspection_record',
