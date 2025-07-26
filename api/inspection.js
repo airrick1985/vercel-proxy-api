@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ status: 'error', message: 'Token 驗證失敗' });
   }
 
-  // ✅ 核心修正 2：建立一個包含所有合法 action 的總列表
+  // 建立一個包含所有合法 action 的總列表
   const allowActions = [
     // 所有公開的 action
     ...publicActions,
