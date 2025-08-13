@@ -25,6 +25,7 @@ export default async function handler(req, res) {
     'cancel_booking',
     'update_booking',
     'update_household_data',
+     'get_all_booking_rules' ,
     'get_inspection_appointments' //將獲取行事曆資料的 action 設為公開
 
   ];
