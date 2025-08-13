@@ -27,8 +27,7 @@ export default async function handler(req, res) {
     'update_household_data',
      'get_all_booking_rules' ,
     'get_inspection_appointments',
-    'upload_auth_letter'//將獲取行事曆資料的 action 設為公開
-
+    'upload_auth_letter'
   ];
 
   // 如果 action 不在公開列表中，才需要檢查 token
