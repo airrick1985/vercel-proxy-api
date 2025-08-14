@@ -27,7 +27,8 @@ export default async function handler(req, res) {
     'update_household_data',
      'get_all_booking_rules' ,
     'get_inspection_appointments',
-    'upload_auth_letter'
+    'upload_auth_letter',
+    'get_unit_details_for_admin'
   ];
 
   // 如果 action 不在公開列表中，才需要檢查 token
