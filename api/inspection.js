@@ -57,7 +57,10 @@ export default async function handler(req, res) {
     'upload_signature',
     'confirm_inspection',
     'generate_inspection_pdf',
-    'get_all_project_inspection_records'
+    'get_all_project_inspection_records',
+    'get_buildings_and_units_admin',
+    'check_duplicate_appointment_admin',
+    'add_appointment_admin'
   ];
 
   if (!action || !allowActions.includes(action)) {
