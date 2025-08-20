@@ -28,7 +28,8 @@ export default async function handler(req, res) {
      'get_all_booking_rules' ,
     'get_inspection_appointments',
     'upload_auth_letter',
-    'get_unit_details_for_admin'
+    'get_unit_details_for_admin',
+    'upload_inspection_report'
   ];
 
   // 如果 action 不在公開列表中，才需要檢查 token
